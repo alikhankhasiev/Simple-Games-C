@@ -23,6 +23,27 @@
 #include <vector>
 #include "windows.h"
 
+/// For stopping
+#include <conio.h>
+#include <thread>
+#include <atomic>
+
+std::atomic<bool> is_drawing(true);
+
+void InputHandler() {
+    while (true) {
+        if (_kbhit()) {
+            char ch = _getch();
+            if (ch == 'P' || ch == 'p') {
+                is_drawing = false;
+            }
+            else if (ch == 'C' || ch == 'c') {
+                is_drawing = true;
+            }
+        }
+    }
+}
+
 int WIDTH = 102, HEIGHT = 27;
 
 void DrawFrame(std::vector<std::vector<char>> map) {
@@ -84,15 +105,20 @@ int main() {
     }
     map.push_back(row);
 
+    std::thread input_thread(InputHandler); // Запускаем поток для обработки ввода
+
     DrawFrame(map); // самый первый фрейм с оригинальной картой
     while (1) {
-        Sleep(50);
-        printf("\033[H\033[J"); // для очистки консоли
+        if (is_drawing) {
+            Sleep(50);
+            printf("\033[H\033[J"); // для очистки консоли
 
-        map = CalcFrame(map); // после каждого расчета меняем оригинальную карту
-        DrawFrame(map); // рисуем расчитаную карту
+            map = CalcFrame(map); // после каждого расчета меняем оригинальную карту
+            DrawFrame(map); // рисуем расчитаную карту
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Задержка
     }
 
-
+    input_thread.join(); // Ждем завершение потока ввода (в данном случае не будет достигнуто, но для корректности)
     return 0;
 }
